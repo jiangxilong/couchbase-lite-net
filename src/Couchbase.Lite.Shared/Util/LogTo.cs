@@ -267,12 +267,17 @@ namespace Couchbase.Lite.Util
 
         internal DomainLogger Discovery { get { return _allLoggers[10]; } }
 
-        internal DomainLogger NoDomain { get { return _allLoggers[11]; } }
+        internal DomainLogger Blip { get { return _allLoggers[11]; } }
+
+        internal DomainLogger BlipLifecycle { get { return _allLoggers[12]; } }
+
+        internal DomainLogger NoDomain { get { return _allLoggers[13]; } }
 
         internal LogTo()
         {
             var domains = new[] { "DATABASE", "QUERY", "VIEW", "ROUTER", "SYNC",
-                "SYNC PERF", "CHANGE TRACKER", "VALIDATION", "UPGRADE", "LISTENER", "DISCOVERY" };
+                "SYNC PERF", "CHANGE TRACKER", "VALIDATION", "UPGRADE", "LISTENER", "DISCOVERY",
+                "BLIP", "BLIP LIFECYCLE"};
             _allLoggers = new DomainLogger[domains.Length + 1];
             int i = 0;
             foreach (var domain in domains) {

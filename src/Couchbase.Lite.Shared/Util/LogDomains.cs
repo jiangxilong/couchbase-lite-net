@@ -157,6 +157,20 @@ namespace Couchbase.Lite.Util
             }
         }
 
+        public IDomainLogging Blip
+        {
+            get {
+                return _source.Blip;
+            }
+        }
+
+        public IDomainLogging BlipLifecycle
+        {
+            get {
+                return _source.BlipLifecycle;
+            }
+        }
+
         /// <summary>
         /// Gets all the logging interfaces so logic can be applied to
         /// all of them
