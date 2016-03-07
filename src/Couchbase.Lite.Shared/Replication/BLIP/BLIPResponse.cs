@@ -40,7 +40,7 @@ namespace Couchbase.Protocol.Blip
                 }
 
                 var userInfo = new Dictionary<string, string>(Properties);
-                var code = userInfo.GetCast<string>("Error-Code");
+                var code = userInfo.Get("Error-Code");
                 int parsedCode;
                 if (code == "0" || !Int32.TryParse(code, out parsedCode)) {
                     parsedCode = (int)BLIPError.Unspecified;

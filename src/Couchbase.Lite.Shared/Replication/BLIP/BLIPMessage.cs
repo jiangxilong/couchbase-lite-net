@@ -29,7 +29,7 @@ using ICSharpCode.SharpZipLib.Zip;
 
 namespace Couchbase.Protocol.Blip
 {
-    internal enum BLIPError
+    public enum BLIPError
     {
         BadData = 1,
         BadFrame,
@@ -74,7 +74,7 @@ namespace Couchbase.Protocol.Blip
         private const int AckByteInterval = 50000;
 
         private readonly bool _isMine;
-        private readonly Dictionary<string, string> _properties;
+        private Dictionary<string, string> _properties;
         private List<byte> _body;
         private List<Stream> _bodyStreams = new List<Stream>();
         private ulong _bytesReceived;
@@ -90,7 +90,7 @@ namespace Couchbase.Protocol.Blip
 
         public Action<BLIPMessage> OnSent { get; set; }
 
-        public uint Number { get; private set; }
+        public ulong Number { get; private set; }
 
         public bool IsMine
         {
@@ -134,7 +134,7 @@ namespace Couchbase.Protocol.Blip
             }
         }
 
-        public bool CanWrite { get; private set; }
+        public bool CanWrite { get; protected set; }
 
         public IEnumerable<byte> Body 
         {
@@ -171,7 +171,7 @@ namespace Couchbase.Protocol.Blip
             get {
                 var retVal = default(object);
                 try {
-                    retVal = Manager.GetObjectMapper().ReadValue(Body);
+                    retVal = Manager.GetObjectMapper().ReadValue<object>(Body);
                 } catch(Exception e) {
                     Log.To.Sync.W(Tag, String.Format("Couldn't parse {0} as JSON, returning null...",
                         new SecureLogString(Body, LogMessageSensitivity.PotentiallyInsecure)), e);
@@ -238,7 +238,7 @@ namespace Couchbase.Protocol.Blip
 
         internal ulong BytesWritten { get; private set; }
 
-        internal BLIPMessage(BLIPConnection connection, bool isMine, BLIPMessageFlags flags, uint msgNo,
+        internal BLIPMessage(BLIPConnection connection, bool isMine, BLIPMessageFlags flags, ulong msgNo,
             IEnumerable<byte> body)
         {
             _connection = connection;
@@ -290,7 +290,7 @@ namespace Couchbase.Protocol.Blip
             }
 
             if (on) {
-                Flags != flags;
+                Flags |= flags;
             } else {
                 Flags &= ~flags;
             }
@@ -356,7 +356,7 @@ namespace Couchbase.Protocol.Blip
                 // First frame: always write entire properties
                 var propertyData = BLIPProperties.Encode(_properties);
                 frame.AddRange(propertyData);
-                BytesWritten += propertyData.Count();
+                BytesWritten += (ulong)propertyData.Count();
             }
 
             // Now read from the payload:
@@ -377,7 +377,7 @@ namespace Couchbase.Protocol.Blip
                     return null;
                 }
 
-                BytesWritten += bytesRead;
+                BytesWritten += (ulong)bytesRead;
             }
 
             // Write the header at the start of the frame:
@@ -422,7 +422,7 @@ namespace Couchbase.Protocol.Blip
         {
             var realized = body.ToArray();
             Log.To.Sync.V(Tag, "{0} rcvd bytes {1}-{2}, flags={3}", this, _bytesReceived,
-                _bytesReceived + realized.Length, flags);
+                _bytesReceived + (ulong)realized.Length, flags);
             System.Diagnostics.Debug.Assert(!IsMine);
             System.Diagnostics.Debug.Assert(flags.HasFlag(BLIPMessageFlags.MoreComing));
 
@@ -431,11 +431,11 @@ namespace Couchbase.Protocol.Blip
             }
 
             var oldBytesReceived = _bytesReceived;
-            _bytesReceived += realized.Length;
+            _bytesReceived += (ulong)realized.Length;
             var shouldAck = flags.HasFlag(BLIPMessageFlags.MoreComing) && oldBytesReceived > 0 &&
                             (oldBytesReceived / AckByteInterval) < (_bytesReceived / AckByteInterval);
 
-            if (!_incoming) {
+            if (_incoming == null) {
                 _incoming = _encodedBody = new MemoryStream();
             }
 
@@ -448,7 +448,7 @@ namespace Couchbase.Protocol.Blip
 
             if (_properties == null) {
                 // Try to extract the properties:
-                bool complete;
+                bool complete = false;
                 _properties = BLIPProperties.Read(_encodedBody, ref complete);
                 if (_properties != null) {
                     if (flags.HasFlag(BLIPMessageFlags.Compressed)) {

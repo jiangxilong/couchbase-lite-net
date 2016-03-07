@@ -58,6 +58,7 @@ namespace Couchbase.Protocol.Blip
 
             var length = data.Count;
             data.InsertRange(0, VarintBitConverter.GetVarintBytes(length));
+            return data;
         }
 
         public static Dictionary<string, string> Read(Stream input, ref bool complete)
@@ -138,7 +139,7 @@ namespace Couchbase.Protocol.Blip
         {
             var next = stream.ReadByte();
             while (next != end && next != -1) {
-                yield return next;
+                yield return (byte)next;
             }
         }
     }

@@ -94,7 +94,7 @@ namespace Couchbase.Protocol.Blip
             return new BLIPRequest(this, null, null);
         }
 
-        public BLIPRequest CreateRequest(IEnumerable<byte> body, IDictionary<string, object> properties)
+        public BLIPRequest CreateRequest(IEnumerable<byte> body, IDictionary<string, string> properties)
         {
             return new BLIPRequest(this, body, properties);
         }
@@ -138,6 +138,13 @@ namespace Couchbase.Protocol.Blip
             if (_outBox != null && _outBox.Count > 0) {
                 FeedTransport();
             }
+
+            _callbackScheduler.StartNew(() =>
+            {
+                if (OnConnect != null) {
+                    OnConnect(this, null);
+                }
+            });
         }
 
         protected void TransportClosed(BLIPException e)
@@ -181,13 +188,13 @@ namespace Couchbase.Protocol.Blip
                 }
 
                 // Ask the message to generate its next frame. Do this on the delegate queue:
-                bool moreComing;
+                bool moreComing = false;
                 IEnumerable<byte> frame;
                 _callbackScheduler.StartNew(() =>
                 {
                     frame = msg.NextFrame((ushort)frameSize, ref moreComing);
                     bool requeue = msg.NeedsAck;
-                    Action<BLIPMessage> onSent = moreComing ? null : () => msg.OnSent;
+                    Action<BLIPMessage> onSent = moreComing ? null : msg.OnSent;
                     _transportScheduler.StartNew(() => 
                     {
                         // SHAZAM! Send the frame to the transport:
@@ -251,7 +258,7 @@ namespace Couchbase.Protocol.Blip
             }
         }
 
-        internal void MessageReceivedPropertes(BLIPMessage message)
+        internal void MessageReceivedProperties(BLIPMessage message)
         {
             if (DispatchPartialMessages) {
                 if (message.IsRequest) {
@@ -328,7 +335,7 @@ namespace Couchbase.Protocol.Blip
                 throw new InvalidOperationException("Cannot send BLIPRequest twice");
             }
 
-            bool result;
+            bool result = false;
             _transportScheduler.StartNew(() =>
             {
                 if(_transportIsOpen && !TransportCanSend) {
@@ -363,6 +370,8 @@ namespace Couchbase.Protocol.Blip
             {
                 QueueMessage(response, true, true);
             });
+
+            return true;
         }
 
         internal void PauseMessage(BLIPMessage message)
@@ -422,7 +431,7 @@ namespace Couchbase.Protocol.Blip
             return null;
         }
 
-        internal void SendAck(uint number, bool isRequest, ulong bytesReceived)
+        internal void SendAck(ulong number, bool isRequest, ulong bytesReceived)
         {
             Log.To.Blip.V(Tag, "{0}: Sending {1} of {2} ({3} bytes)", this, isRequest ? "ACKMSG" : "ACKRPY",
                 number, bytesReceived);
@@ -450,7 +459,7 @@ namespace Couchbase.Protocol.Blip
             try {
                 messageNum = VarintBitConverter.ToUInt64(frame);
                 ulong flags = VarintBitConverter.ToUInt64(frame);
-                if(flags <= BLIPMessageFlags.MaxFlag) {
+                if(flags <= (ulong)BLIPMessageFlags.MaxFlag) {
                     var body = new byte[frame.Length - frame.Position];
                     frame.Read(body, 0, body.Length);
                     ReceivedFrame(messageNum, (BLIPMessageFlags)flags, body);
@@ -465,7 +474,7 @@ namespace Couchbase.Protocol.Blip
         private void ReceivedFrame(ulong requestNum, BLIPMessageFlags flags, byte[] body)
         {
             var type = (BLIPMessageFlags)(flags & BLIPMessageFlags.TypeMask);
-            Log.To.Blip.V(Tag, "{0} rcvd frame of {1} #{2}, length {3}", this, TypeStrings[type], requestNum,
+            Log.To.Blip.V(Tag, "{0} rcvd frame of {1} #{2}, length {3}", this, TypeStrings[(int)type], requestNum,
                 body.Length);
 
             var key = requestNum;
@@ -519,7 +528,7 @@ namespace Couchbase.Protocol.Blip
                     var msg = GetOutgoingMessage(requestNum, (type == BLIPMessageFlags.AckMsg));
                     if (msg == null) {
                         Log.To.Blip.I(Tag, "??? {0} received ACK for non-current message ({1} {2})",
-                            this, TypeStrings[type], requestNum);
+                            this, TypeStrings[(int)type], requestNum);
                         break;
                     }
 

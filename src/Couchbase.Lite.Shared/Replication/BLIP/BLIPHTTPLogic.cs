@@ -22,6 +22,7 @@ using System;
 using System.Net.Http;
 using System.Net;
 using Couchbase.Lite.Util;
+using Couchbase.Lite;
 
 namespace Couchbase.Protocol.Blip
 {
@@ -81,7 +82,7 @@ namespace Couchbase.Protocol.Blip
 
         public HttpRequestMessage CreateRequestMessage()
         {
-
+            return null;
         }
 
         public void ReceivedResponse(HttpRequestMessage message)

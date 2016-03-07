@@ -97,7 +97,7 @@ namespace Couchbase.Protocol.Blip
             }
         }
 
-        internal BLIPRequest(BLIPConnection connection, bool isMine, BLIPMessageFlags flags, uint msgNo, IEnumerable<byte> body)
+        internal BLIPRequest(BLIPConnection connection, bool isMine, BLIPMessageFlags flags, ulong msgNo, IEnumerable<byte> body)
             : base(connection, isMine, flags, msgNo, body)
         {
 

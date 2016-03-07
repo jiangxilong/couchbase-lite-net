@@ -44,20 +44,22 @@ namespace Couchbase.Protocol.Blip.WebSocket
             }
         }
 
+        public override Uri Url { get; internal set; }
+
         public BLIPWebSocketConnection(HttpRequestMessage message)
             : this(null, message.RequestUri, false)
         {
-            if (message == null) {
+            /*if (message == null) {
                 Log.To.Blip.E(Tag, "message cannot be null in ctor, throwing...");
                 throw new ArgumentNullException("message");
             }
 
             _httpLogic = new BLIPHTTPLogic(message);
-            _httpLogic.SetHeaderValue("Sec-WebSocket-Protocol", "BLIP");
+            _httpLogic.SetHeaderValue("Sec-WebSocket-Protocol", "BLIP");*/
         }
 
         public BLIPWebSocketConnection(Uri url)
-            : this(new HttpRequestMessage(HttpMethod.Get, url))
+            : this(null, url, false)
         {
 
         }
@@ -66,7 +68,7 @@ namespace Couchbase.Protocol.Blip.WebSocket
             : base(incoming)
         {
             Socket = webSocket;
-            if (!incoming) {
+            if (!incoming && webSocket != null) {
                 SetupCallbacks();
             }
 
@@ -75,13 +77,13 @@ namespace Couchbase.Protocol.Blip.WebSocket
 
         public void SetCredential(NetworkCredential credential)
         {
-            _httpLogic.Credential = credential;
+            Socket.SetCredentials(credential.UserName, credential.Password, true);
         }
 
-        public void Connect()
+        public override void Connect()
         {
-            Log.To.Blip.I(Tag, "{0} connecting to <{1}>...", this, new SecureLogUri(_httpLogic.Url));
-            Socket = new WebSocketSharp.WebSocket(_httpLogic.Url);
+            Log.To.Blip.I(Tag, "{0} connecting to <{1}>...", this, new SecureLogUri(Url));
+            Socket = new WebSocketSharp.WebSocket(Url.AbsoluteUri);
             SetupCallbacks();
             Socket.ConnectAsync();
         }
@@ -102,7 +104,7 @@ namespace Couchbase.Protocol.Blip.WebSocket
         private void OnWebSocketClosed (object sender, CloseEventArgs e)
         {
             var error = default(BLIPException);
-            if (e.Code != CloseStatusCode.Normal || !e.WasClean) {
+            if (e.Code != (ushort)CloseStatusCode.Normal || !e.WasClean) {
                 error = BLIPUtility.MakeException(BLIPError.Disconnected, e.Reason);
             }
 
