@@ -327,10 +327,10 @@ namespace Couchbase.Lite.Replicator
                     Revisions = bulkRevs,
                     Database = LocalDatabase,
                     RequestHeaders = RequestHeaders,
-                    RetryStrategy = ReplicationOptions.RetryStrategy
+                    RetryStrategy = ReplicationOptions.RetryStrategy,
+                    CookieStore = CookieContainer
                 });
 
-                dl.CookieStore = CookieContainer;
                 dl.DocumentDownloaded += (sender, args) =>
                 {
                     var props = args.DocumentProperties;
@@ -456,7 +456,7 @@ namespace Couchbase.Lite.Replicator
         }
 
 
-		private bool ShouldRetryDownload(string docId)
+        private bool ShouldRetryDownload(string docId)
         {
             if (!LocalDatabase.IsOpen) {
                 return false;

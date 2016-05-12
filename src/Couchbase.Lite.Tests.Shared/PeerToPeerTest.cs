@@ -56,13 +56,53 @@ namespace Couchbase.Lite
         private AuthenticationSchemes _authScheme;
         private Random _rng = new Random(DateTime.Now.Millisecond);
 
-        public PeerToPeerTest(string storageType) : base(storageType) {}
+        public PeerToPeerTest(string storageType) : base(storageType) { }
 
         protected override void SetUp()
         {
             base.SetUp();
 
             _listenerDB = EnsureEmptyDatabase(LISTENER_DB_NAME);
+        }
+
+        [Test]
+        public void TestExternalReplicationContinuous()
+        {
+            var sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
+            var lsdb1 = EnsureEmptyDatabase("ls_db1");
+            var lsdb2 = EnsureEmptyDatabase("ls_db2");
+
+            SetupListener(false);
+            using(var remoteDb = sg.CreateDatabase("sg_db")) {
+                foreach(var dbName in new[] { "ls_db1", "ls_db2" }) {
+                    var request = WebRequest.Create("http://localhost:" + _port + "/_replicate");
+                    request.ContentType = "application/json";
+                    request.Method = "POST";
+                    var body = String.Format("{{\"source\":\"{0}\",\"target\":\"{1}\", \"continuous\":true}}", dbName, remoteDb.RemoteUri);
+                    var bytes = Encoding.UTF8.GetBytes(body);
+                    request.ContentLength = bytes.Length;
+                    request.GetRequestStream().Write(bytes, 0, bytes.Length);
+
+                    var response = (HttpWebResponse)request.GetResponse();
+                    Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+
+                    request = WebRequest.Create("http://localhost:" + _port + "/_replicate");
+                    request.ContentType = "application/json";
+                    request.Method = "POST";
+                    body = String.Format("{{\"source\":\"{0}\",\"target\":\"{1}\",\"continuous\":true}}", remoteDb.RemoteUri, dbName);
+                    bytes = Encoding.UTF8.GetBytes(body);
+                    request.ContentLength = bytes.Length;
+                    request.GetRequestStream().Write(bytes, 0, bytes.Length);
+
+                    response = (HttpWebResponse)request.GetResponse();
+                    Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+                }
+
+                CreateDocuments(lsdb1, 500);
+                CreateDocuments(lsdb2, 500);
+
+                Thread.Sleep(600000);
+            }
         }
 
         [Test]
@@ -74,7 +114,7 @@ namespace Couchbase.Lite
 
             SetupListener(false);
             CreateDocuments(database, 10);
-            using (var remoteDb = sg.CreateDatabase("external_replication_test")) {
+            using(var remoteDb = sg.CreateDatabase("external_replication_test")) {
                 var request = WebRequest.Create("http://localhost:" + _port + "/_replicate");
                 request.ContentType = "application/json";
                 request.Method = "POST";
@@ -110,32 +150,24 @@ namespace Couchbase.Lite
             var sslListener = new CouchbaseLiteTcpListener(manager, 59841, CouchbaseLiteTcpOptions.UseTLS, cert);
             sslListener.Start();
 
-            ServicePointManager.ServerCertificateValidationCallback = 
+            ServicePointManager.ServerCertificateValidationCallback =
                 (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>
             {
                 // If the certificate is a valid, signed certificate, return true.
-                if (sslPolicyErrors == SslPolicyErrors.None || sslPolicyErrors == SslPolicyErrors.RemoteCertificateNameMismatch)
-                {
+                if(sslPolicyErrors == SslPolicyErrors.None || sslPolicyErrors == SslPolicyErrors.RemoteCertificateNameMismatch) {
                     return true;
                 }
 
                 // If there are errors in the certificate chain, look at each error to determine the cause.
-                if ((sslPolicyErrors & SslPolicyErrors.RemoteCertificateChainErrors) != 0)
-                {
-                    if (chain != null && chain.ChainStatus != null)
-                    {
-                        foreach (X509ChainStatus status in chain.ChainStatus)
-                        {
-                            if ((certificate.Subject == certificate.Issuer) &&
-                                (status.Status == X509ChainStatusFlags.UntrustedRoot))
-                            {
+                if((sslPolicyErrors & SslPolicyErrors.RemoteCertificateChainErrors) != 0) {
+                    if(chain != null && chain.ChainStatus != null) {
+                        foreach(X509ChainStatus status in chain.ChainStatus) {
+                            if((certificate.Subject == certificate.Issuer) &&
+                                (status.Status == X509ChainStatusFlags.UntrustedRoot)) {
                                 // Self-signed certificates with an untrusted root are valid. 
                                 continue;
-                            }
-                            else
-                            {
-                                if (status.Status != X509ChainStatusFlags.NoError)
-                                {
+                            } else {
+                                if(status.Status != X509ChainStatusFlags.NoError) {
                                     // If there are any other errors in the certificate chain, the certificate is invalid,
                                     // so the method returns false.
                                     return false;
@@ -148,9 +180,7 @@ namespace Couchbase.Lite
                     // untrusted root errors for self-signed certificates. These certificates are valid
                     // for default Exchange server installations, so return true.
                     return true;
-                }
-                else
-                {
+                } else {
                     // In all other cases, return false.
                     return false;
                 }
@@ -187,7 +217,7 @@ namespace Couchbase.Lite
                 CreateDocs(database, false);
                 var repl = CreateReplication(database, true);
                 var allChangesExternal = true;
-                _listenerDB.Changed += (sender, e) => 
+                _listenerDB.Changed += (sender, e) =>
                 {
                     allChangesExternal = allChangesExternal && e.IsExternal;
                 };
@@ -203,11 +233,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestBrowser()
         {
-            #if __ANDROID__
+#if __ANDROID__
             if(global::Android.OS.Build.VERSION.SdkInt < global::Android.OS.BuildVersionCodes.JellyBean) {
                 Assert.Inconclusive("PeerToPeer requires API level 16, but found {0}", global::Android.OS.Build.VERSION.Sdk);
             }
-            #endif
+#endif
 
             Log.Domains.All.Level = Log.LogLevel.None;
             Log.Domains.Discovery.Level = Log.LogLevel.Debug;
@@ -216,18 +246,20 @@ namespace Couchbase.Lite
             //Android will get stuck in DNSProcessResult which hangs indefinitely if
             //no results are found (Which will happen if registration is aborted between
             //the resolve reply and query record steps)
-            ServiceParams.Timeout = TimeSpan.FromSeconds(3); 
+            ServiceParams.Timeout = TimeSpan.FromSeconds(3);
             var mre1 = new ManualResetEventSlim();
             var mre2 = new ManualResetEventSlim();
             CouchbaseLiteServiceBrowser browser = new CouchbaseLiteServiceBrowser(new ServiceBrowser());
-            browser.ServiceResolved += (sender, e) => {
+            browser.ServiceResolved += (sender, e) =>
+            {
                 Log.To.Discovery.I(TAG, "Discovered service: {0}", e.Service.Name);
                 if(e.Service.Name == TAG) {
                     mre1.Set();
                 }
             };
 
-            browser.ServiceRemoved += (o, args) => {
+            browser.ServiceRemoved += (o, args) =>
+            {
                 Log.To.Discovery.I(TAG, "Service destroyed: {0}", args.Service.Name);
                 if(args.Service.Name == TAG) {
                     mre2.Set();
@@ -274,7 +306,7 @@ namespace Couchbase.Lite
                 var repl = CreateReplication(database, false);
                 repl.Continuous = true;
                 var allChangesExternal = true;
-                database.Changed += (sender, e) => 
+                database.Changed += (sender, e) =>
                 {
                     allChangesExternal = allChangesExternal && e.IsExternal;
                 };
@@ -322,15 +354,15 @@ namespace Couchbase.Lite
         private Replication CreateReplication(Database db, bool push)
         {
             Replication repl = null;
-            if (push) {
+            if(push) {
                 repl = db.CreatePushReplication(_listenerDBUri);
             } else {
                 repl = db.CreatePullReplication(_listenerDBUri);
             }
 
-            if (_authScheme == AuthenticationSchemes.Basic) {
+            if(_authScheme == AuthenticationSchemes.Basic) {
                 repl.Authenticator = new BasicAuthenticator("bob", "slack");
-            } else if (_authScheme == AuthenticationSchemes.Digest) {
+            } else if(_authScheme == AuthenticationSchemes.Digest) {
                 repl.Authenticator = new DigestAuthenticator("bob", "slack");
             }
 
@@ -340,20 +372,20 @@ namespace Couchbase.Lite
         private void SetupListener(bool secure)
         {
             var opts = CouchbaseLiteTcpOptions.Default;
-            if (_authScheme == AuthenticationSchemes.Basic) {
+            if(_authScheme == AuthenticationSchemes.Basic) {
                 opts |= CouchbaseLiteTcpOptions.AllowBasicAuth;
             }
 
-            if (secure) {
+            if(secure) {
                 var cert = X509Manager.GetPersistentCertificate("127.0.0.1", "123abc", System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "unit_test.pfx"));
                 _listenerDBUri = new Uri(String.Format("https://localhost:{0}/{1}/", _port, LISTENER_DB_NAME));
-                _listener = new CouchbaseLiteTcpListener(manager, _port, opts | CouchbaseLiteTcpOptions.UseTLS, cert);  
+                _listener = new CouchbaseLiteTcpListener(manager, _port, opts | CouchbaseLiteTcpOptions.UseTLS, cert);
             } else {
                 _listenerDBUri = new Uri(String.Format("http://localhost:{0}/{1}/", _port, LISTENER_DB_NAME));
-                _listener = new CouchbaseLiteTcpListener(manager, _port, opts); 
+                _listener = new CouchbaseLiteTcpListener(manager, _port, opts);
             }
 
-            if (_authScheme != AuthenticationSchemes.None) {
+            if(_authScheme != AuthenticationSchemes.None) {
                 _listener.SetPasswords(new Dictionary<string, string> { { "bob", "slack" } });
             }
 
@@ -374,7 +406,7 @@ namespace Couchbase.Lite
                     });
 
                     if(withAttachments) {
-                        int length = (int)(MIN_ATTACHMENT_LENGTH + _rng.Next() / 
+                        int length = (int)(MIN_ATTACHMENT_LENGTH + _rng.Next() /
                             (double)Int32.MaxValue * (MAX_ATTACHMENT_LENGTH - MIN_ATTACHMENT_LENGTH));
                         var data = new byte[length];
                         _rng.NextBytes(data);
@@ -390,12 +422,12 @@ namespace Couchbase.Lite
 
         private void VerifyDocs(Database db, bool withAttachments)
         {
-            for (int i = 1; i <= DOCUMENT_COUNT; i++) {
+            for(int i = 1; i <= DOCUMENT_COUNT; i++) {
                 var doc = db.GetExistingDocument(String.Format("doc-{0}", i));
                 Assert.IsNotNull(doc);
                 Assert.AreEqual(i, doc.UserProperties["index"]);
                 Assert.AreEqual(false, doc.UserProperties["bar"]);
-                if (withAttachments) {
+                if(withAttachments) {
                     Assert.IsNotNull(doc.CurrentRevision.GetAttachment("README"));
                 }
             }
