@@ -64,6 +64,7 @@ namespace Couchbase.Lite {
 
         private static readonly string Tag = typeof(Document).Name;
         SavedRevision currentRevision;
+        private bool _currentRevisionKnown;
             
     #region Constructors
 
@@ -130,17 +131,11 @@ namespace Couchbase.Lite {
         /// <value>The current/latest <see cref="Couchbase.Lite.Revision"/>.</value>
         public SavedRevision CurrentRevision { 
             get {
-                if (currentRevision == null) {
-                    try {
-                        var rev = GetRevisionWithId(null);
-                        if(rev != null && !rev.IsDeletion) {
-                            currentRevision = rev;
-                        }
-                    } catch(CouchbaseLiteException e) {
-                        if (e.Code != StatusCode.Deleted) {
-                            throw;
-                        }
-                    }
+                if (!_currentRevisionKnown) {
+                    var status = new Status(StatusCode.Ok);
+                    currentRevision = GetRevisionWithId(null, status);
+                    _currentRevisionKnown =
+                        (currentRevision != null || status.Code == StatusCode.NotFound || status.IsSuccessful);
                 }
 
                 return currentRevision;
@@ -422,16 +417,17 @@ namespace Couchbase.Lite {
 
         internal void ForgetCurrentRevision()
         {
+            _currentRevisionKnown = false;
             currentRevision = null;
         }
 
-        private SavedRevision GetRevisionWithId(String revId)
+        private SavedRevision GetRevisionWithId(String revId, Status outStatus)
         {
             if (!StringEx.IsNullOrWhiteSpace(revId) && revId.Equals(currentRevision.Id)) {
                 return currentRevision;
             }
 
-            return GetRevisionFromRev(Database.GetDocument(Id, revId, true));
+            return GetRevisionFromRev(Database.GetDocument(Id, revId, true, outStatus));
         }
 
         internal void LoadCurrentRevisionFrom(QueryRow row)
@@ -529,16 +525,17 @@ namespace Couchbase.Lite {
         {
             var revId = documentChange.WinningRevisionId;
             if (revId == null) {
-                return;
+                return; // current revision didn't change
             }
                 
-            // current revision didn't change
-            if (currentRevision != null && !revId.Equals(currentRevision.Id))
+            if (_currentRevisionKnown && (currentRevision == null || !revId.Equals(currentRevision.Id)))
             {
                 var rev = documentChange.WinningRevisionIfKnown;
-                if (rev == null || rev.Deleted) {
+                if (rev == null) {
+                    ForgetCurrentRevision();
+                } else if (rev.Deleted) {
                     currentRevision = null;
-                } else if (!rev.Deleted) {
+                } else {
                     currentRevision = new SavedRevision(this, rev);
                 }
             }

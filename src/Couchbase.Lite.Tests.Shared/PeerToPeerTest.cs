@@ -98,8 +98,22 @@ namespace Couchbase.Lite
                     Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
                 }
 
-                CreateDocuments(lsdb1, 500);
-                CreateDocuments(lsdb2, 500);
+                for (int i = 0; i < 500; i++) {
+                    var request = WebRequest.Create($"http://localhost:{_port}/ls_db1/test_ls_db1_{i}");
+                    request.Method = "PUT";
+                    request.ContentType = "application/json";
+                    var data = Encoding.UTF8.GetBytes("{\"foo\": \"bar\"}");
+                    request.GetRequestStream().Write(data, 0, data.Length);
+                    var response = (HttpWebResponse)request.GetResponse();
+                    Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+                    request = WebRequest.Create($"http://localhost:{_port}/ls_db2/test_ls_db2_{i}");
+                    request.Method = "PUT";
+                    request.ContentType = "application/json";
+                    request.GetRequestStream().Write(data, 0, data.Length);
+                    response = (HttpWebResponse)request.GetResponse();
+                    Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+                }
 
                 Thread.Sleep(600000);
             }
