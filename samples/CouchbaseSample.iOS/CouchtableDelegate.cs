@@ -85,7 +85,7 @@ namespace CouchbaseSample
             catch (Exception ex)
             {
                 if (newRevision == null)
-                    parent.ShowErrorAlert ("Failed to update item", ex, false);
+                    AppDelegate.ShowAlert ("Failed to update item", ex, false);
             }
         }
 

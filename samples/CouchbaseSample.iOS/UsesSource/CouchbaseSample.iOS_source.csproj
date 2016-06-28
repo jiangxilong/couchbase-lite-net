@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\..\..\src\packages\Xamarin.Build.Download.0.2.1\build\Xamarin.Build.Download.props" Condition="Exists('..\..\..\src\packages\Xamarin.Build.Download.0.2.1\build\Xamarin.Build.Download.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">iPhoneSimulator</Platform>
@@ -24,7 +25,7 @@
     <ConsolePause>false</ConsolePause>
     <MtouchDebug>true</MtouchDebug>
     <MtouchArch>i386, x86_64</MtouchArch>
-    <MtouchExtraArgs>--registrar=static</MtouchExtraArgs>
+    <MtouchExtraArgs>-f</MtouchExtraArgs>
     <MtouchProfiling>true</MtouchProfiling>
     <MtouchUseRefCounting>true</MtouchUseRefCounting>
     <MtouchNoSymbolStrip>true</MtouchNoSymbolStrip>
@@ -41,7 +42,7 @@
     <ConsolePause>false</ConsolePause>
     <DebugSymbols>true</DebugSymbols>
     <MtouchExtraArgs>--registrar=static</MtouchExtraArgs>
-    <MtouchArch>i386, x86_64</MtouchArch>
+    <MtouchArch>i386</MtouchArch>
     <Platform>iPhone</Platform>
     <MtouchUseThumb>true</MtouchUseThumb>
     <MtouchUseRefCounting>true</MtouchUseRefCounting>
@@ -104,6 +105,12 @@
     <Reference Include="Stateless">
       <HintPath>..\..\..\src\packages\Stateless.2.5.62.0\lib\portable-net40+sl50+win+wp80+MonoAndroid10+xamarinios10+MonoTouch10\Stateless.dll</HintPath>
     </Reference>
+    <Reference Include="Google.Core">
+      <HintPath>..\..\..\src\packages\Xamarin.Google.iOS.Core.2.0.4.0\lib\Xamarin.iOS10\Google.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Google.SignIn">
+      <HintPath>..\..\..\src\packages\Xamarin.Google.iOS.SignIn.3.0.0.0\lib\Xamarin.iOS10\Google.SignIn.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
@@ -113,19 +120,27 @@
   <ItemGroup>
     <Compile Include="..\Main.cs" />
     <Compile Include="..\AppDelegate.cs" />
-    <Compile Include="..\RootViewController.cs" />
-    <Compile Include="..\RootViewController.designer.cs">
-      <DependentUpon>..\RootViewController.cs</DependentUpon>
-    </Compile>
     <Compile Include="..\ConfigViewController.cs" />
     <Compile Include="..\ConfigViewController.designer.cs">
       <DependentUpon>..\ConfigViewController.cs</DependentUpon>
     </Compile>
     <Compile Include="..\CouchtableDelegate.cs" />
+    <Compile Include="..\OIDCViewController.cs" />
+    <Compile Include="..\OIDCViewController.designer.cs">
+      <DependentUpon>..\OIDCViewController.cs</DependentUpon>
+    </Compile>
+    <Compile Include="..\ILoginDelegate.cs" />
+    <Compile Include="..\OIDCLoginController.cs" />
+    <Compile Include="..\OIDCUIViewController.cs" />
+    <Compile Include="..\RootViewController.cs" />
+    <Compile Include="..\RootViewController.designer.cs">
+      <DependentUpon>..\RootViewController.cs</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
-    <InterfaceDefinition Include="..\RootViewController.xib" />
     <InterfaceDefinition Include="..\ConfigViewController.xib" />
+    <InterfaceDefinition Include="..\OIDCViewController.xib" />
+    <InterfaceDefinition Include="..\RootViewController.xib" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
   <ItemGroup>
@@ -146,18 +161,22 @@
     <BundleResource Include="Resources\textfield___inactive.png" />
     <BundleResource Include="Resources\textfield___inactive~ipad.png" />
     <BundleResource Include="Resources\Default%402x.png" />
+    <BundleResource Include="GoogleService-Info.plist" />
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>
       <Properties>
         <Policies>
           <TextStylePolicy inheritsSet="VisualStudio" inheritsScope="text/plain" scope="text/x-csharp" />
-          <CSharpFormattingPolicy IndentSwitchBody="True" IndentBlocksInsideExpressions="True" AnonymousMethodBraceStyle="NextLine" PropertyBraceStyle="NextLine" PropertyGetBraceStyle="NextLine" PropertySetBraceStyle="NextLine" EventBraceStyle="NextLine" EventAddBraceStyle="NextLine" EventRemoveBraceStyle="NextLine" StatementBraceStyle="NextLine" ElseNewLinePlacement="NewLine" CatchNewLinePlacement="NewLine" FinallyNewLinePlacement="NewLine" WhileNewLinePlacement="DoNotCare" ArrayInitializerWrapping="DoNotChange" ArrayInitializerBraceStyle="NextLine" BeforeMethodDeclarationParentheses="False" BeforeMethodCallParentheses="False" BeforeConstructorDeclarationParentheses="False" NewLineBeforeConstructorInitializerColon="NewLine" NewLineAfterConstructorInitializerColon="SameLine" BeforeDelegateDeclarationParentheses="False" NewParentheses="False" SpacesBeforeBrackets="False" inheritsSet="Mono" inheritsScope="text/x-csharp" scope="text/x-csharp" />
+          <CSharpFormattingPolicy inheritsSet="Mono" inheritsScope="text/x-csharp" scope="text/x-csharp" />
         </Policies>
       </Properties>
     </MonoDevelop>
   </ProjectExtensions>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <Import Project="..\..\..\src\packages\Xamarin.Build.Download.0.2.1\build\Xamarin.Build.Download.targets" Condition="Exists('..\..\..\src\packages\Xamarin.Build.Download.0.2.1\build\Xamarin.Build.Download.targets')" />
+  <Import Project="..\..\..\src\packages\Xamarin.Google.iOS.Core.2.0.4.0\build\Xamarin.Google.iOS.Core.targets" Condition="Exists('..\..\..\src\packages\Xamarin.Google.iOS.Core.2.0.4.0\build\Xamarin.Google.iOS.Core.targets')" />
+  <Import Project="..\..\..\src\packages\Xamarin.Google.iOS.SignIn.3.0.0.0\build\Xamarin.Google.iOS.SignIn.targets" Condition="Exists('..\..\..\src\packages\Xamarin.Google.iOS.SignIn.3.0.0.0\build\Xamarin.Google.iOS.SignIn.targets')" />
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Couchbase.Lite.iOS\Couchbase.Lite.iOS.csproj">
       <Project>{443E1BEE-43B3-45A1-ACEA-F7BA71BDAAB1}</Project>

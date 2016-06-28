@@ -1,11 +1,13 @@
 // WARNING
 //
-// This file has been generated automatically by Xamarin Studio to store outlets and
-// actions made in the UI designer. If it is removed, they will be lost.
-// Manual changes to this file may not be handled correctly.
+// This file has been generated automatically by Xamarin Studio from the outlets and
+// actions declared in your storyboard file.
+// Manual changes to this file will not be maintained.
 //
 using Foundation;
+using System;
 using System.CodeDom.Compiler;
+using UIKit;
 
 namespace CouchbaseSample
 {
@@ -13,22 +15,31 @@ namespace CouchbaseSample
     partial class RootViewController
     {
         [Outlet]
-        global::Couchbase.Lite.iOS.CouchbaseTableSource Datasource { get; set; }
+        [GeneratedCode ("iOS Designer", "1.0")]
+        UIKit.UIImageView BackgroundImage { get; set; }
 
         [Outlet]
+        [GeneratedCode ("iOS Designer", "1.0")]
+        UIKit.UILabel DoneLabel { get; set; }
+
+        [Outlet]
+        [GeneratedCode ("iOS Designer", "1.0")]
         UIKit.UITextField EntryField { get; set; }
 
         [Outlet]
+        [GeneratedCode ("iOS Designer", "1.0")]
         UIKit.UITableView TableView { get; set; }
 
-        [Action ("AddNewEntry:")]
-        partial void AddNewEntry (Foundation.NSObject sender);
-        
         void ReleaseDesignerOutlets ()
         {
-            if (Datasource != null) {
-                Datasource.Dispose ();
-                Datasource = null;
+            if (BackgroundImage != null) {
+                BackgroundImage.Dispose ();
+                BackgroundImage = null;
+            }
+
+            if (DoneLabel != null) {
+                DoneLabel.Dispose ();
+                DoneLabel = null;
             }
 
             if (EntryField != null) {

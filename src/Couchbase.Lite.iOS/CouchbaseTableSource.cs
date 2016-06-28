@@ -1,4 +1,4 @@
-﻿//
+//
 //  CouchBaseTableDelegate.cs
 //
 //  Author:
@@ -32,7 +32,7 @@ namespace Couchbase.Lite.iOS
     /// A data adapter class that holds data for use in conjunction with <see cref="Couchbase.Lite.iOS.CouchBaseTableDelegate" />
     /// </summary>
     [Register("CouchbaseTableSource")]
-    public class CouchbaseTableSource : UITableViewDataSource
+    public partial class CouchbaseTableSource : UITableViewDataSource
     {
 
         #region Variables

@@ -21,5 +21,41 @@
 	<string>Grocery Sync</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.xamarin.sample.couchbase</string>
+	<key>CFBundleName</key>
+	<string>Grocery Sync</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLTypes</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.31919031332-sjiopc9dnh217somhc94b3s1kt7oe2mu</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleURLTypes</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.xamarin.sample.couchbase</string>
+			</array>
+		</dict>
+	</array>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true/>
+	<key>IS_ADS_ENABLED</key>
+	<false/>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false/>
+	<key>IS_APPINVITE_ENABLED</key>
+	<false/>
+	<key>IS_GCM_ENABLED</key>
+	<false/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 </dict>
 </plist>
